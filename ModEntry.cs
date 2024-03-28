@@ -16,6 +16,7 @@ namespace YourProjectName
         // TODO is there a variable already avaiable?
         int currentTime = -1;
         bool extended = false;
+        bool isOutside = false;
             
         /*********
         ** Public methods
@@ -28,6 +29,7 @@ namespace YourProjectName
 
             helper.Events.GameLoop.TimeChanged += this.OnTimeChange;
             helper.Events.Content.AssetRequested += this.OnAssetRequest;
+            helper.Events.Player.Warped += this.Warped;
         }
 
 
@@ -52,6 +54,12 @@ namespace YourProjectName
             currentTime = e.NewTime;
             this.Helper.GameContent.InvalidateCache("LooseSprites/shadow");
 
+        }
+
+        private void Warped(object sender, WarpedEventArgs e)
+        {
+            isOutside = e.NewLocation.IsOutdoors;
+            this.Helper.GameContent.InvalidateCache("LooseSprites/shadow");
         }
 
         private void OnAssetRequest(object sender, AssetRequestedEventArgs e)
@@ -80,7 +88,7 @@ namespace YourProjectName
                     // Calculate what the scaling factor should be based on the current time
                     float scalingFactor;
                     float time = (float)currentTime;
-                    if (currentTime >= 600)
+                    if (currentTime >= 600 && isOutside)
                     {
                         scalingFactor = 3f * time / 700f - 32f / 7f;
                     } else {
