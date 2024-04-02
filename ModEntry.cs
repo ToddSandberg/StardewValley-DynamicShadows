@@ -32,26 +32,10 @@ namespace YourProjectName
             helper.Events.Player.Warped += this.Warped;
         }
 
-
-        /*********
-        ** Private methods
-        *********/
-        /// <summary>Raised after the player presses a button on the keyboard, controller, or mouse.</summary>
-        /// <param name="sender">The event sender.</param>
-        /// <param name="e">The event data.</param>
-        private void OnButtonPressed(object sender, ButtonPressedEventArgs e)
-        {
-            // ignore if player hasn't loaded a save yet
-            if (!Context.IsWorldReady)
-                return;
-
-            // print button presses to the console window
-            this.Monitor.Log($"{Game1.player.Name} pressed {e.Button}.", LogLevel.Debug);
-        }
-
         private void OnTimeChange(object sender, TimeChangedEventArgs e)
         {
             currentTime = e.NewTime;
+            //this.Monitor.Log($"Time change: {currentTime}.", LogLevel.Info);
             this.Helper.GameContent.InvalidateCache("LooseSprites/shadow");
 
         }
@@ -64,10 +48,6 @@ namespace YourProjectName
 
         private void OnAssetRequest(object sender, AssetRequestedEventArgs e)
         {
-            if (e.NameWithoutLocale.Name.Contains("LooseSprites"))
-            {
-                this.Monitor.Log($"Asset Requested: {e.NameWithoutLocale}", LogLevel.Debug);
-            }
             if (e.NameWithoutLocale.IsEquivalentTo("LooseSprites/shadow"))
             {
                 e.Edit(asset =>
@@ -105,23 +85,46 @@ namespace YourProjectName
                     // Below is a simple scaling algo
                     for (int i = 0; i < newPixelCount; i++)
                     {
-                        // Calculate original image index
-                        int originalIndex = (int)(i / Math.Abs(scalingFactor));
+                        // Get the current row
+                        float temp = i / Math.Abs(newWidth);
+                        int rowNum = (int)Math.Floor(temp);
+
+                        // Get the index in the row of the stretched image
+                        int indexInNewRow = i % Math.Abs(newWidth);
+
+                        // Get the aprox index in the old row
+                        int indexInOldRow = (image.Width * indexInNewRow) / Math.Abs(newWidth);
+
+                        // Calculate original sequential image index
+                        int oldRowStart = rowNum * image.Width;
+                        int originalIndex = oldRowStart + indexInOldRow;
 
                         // Idk if this happens but just in case
-                        if (originalIndex > currentPixelCount - 1) continue;
+                        if (originalIndex > currentPixelCount - 1)
+                        {
+                            this.Monitor.Log($"Skipping index {i} since its bigger than original image", LogLevel.Info);
+                            continue;
+                        }
 
                         Color color = image.Data[originalIndex];
                         if (color.A == 0) continue; // ignore transparent color
 
-                        int rowNum = originalIndex / image.Width;
+                        // Explanation of below: basically newImage is a big transparent image, we are setting the top right chunk
+                        //  of that image to the stretched shadow image we want
+
+                     
+                        // Get the sequential pixel number for the start of the row in the whole frame
                         int currentRowStart = rowNum * newImage.Width;
-                        int index = currentRowStart + (i % newWidth);
+                        // Get the sequential index in 
+                        int index = currentRowStart + indexInNewRow;
+
                         newImage.Data[index] = color;
                     }
 
+                    // offset shadow index
                     int offset = (int)Math.Floor(Math.Abs(newWidth) * 0.8);
                     int widthAddition = newWidth > 0 ? offset : newWidth + offset;
+                    // Replace shadow with new image
                     Rectangle areaOfOriginal = new Rectangle(editor.Data.Width / 2 - widthAddition, editor.Data.Height / 2 - (image.Height / 2), newImage.Width, newImage.Height);
                     Rectangle areaOfOverwrite = new Rectangle(0, 0, newImage.Width, newImage.Height);
                     editor.PatchImage(newImage, sourceArea: areaOfOverwrite, targetArea: areaOfOriginal);
