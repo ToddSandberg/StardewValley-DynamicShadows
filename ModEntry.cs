@@ -76,7 +76,9 @@ namespace YourProjectName
                     }
 
                     // Create new array with correct size based on scaled
-                    int newWidth = (int) Math.Floor(image.Width * scalingFactor);
+                    int scaledWidth = (int)Math.Floor(image.Width * scalingFactor);
+                    int newWidth = scaledWidth < image.Width && scaledWidth > -image.Width ? image.Width : scaledWidth;
+
                     int newPixelCount = Math.Abs(newWidth) * image.Height;
                     Color[] newData = new Color[newPixelCount];
                     // bit of a cheeky way to allow for any size image, pulling in a 500x500 image and using what i need
